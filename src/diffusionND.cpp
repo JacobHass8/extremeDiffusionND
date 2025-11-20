@@ -114,11 +114,26 @@ std::vector<std::vector<RealType>> DiffusionND::integratedProbability(std::vecto
 {
 	std::vector<std::vector<RealType> > probabilities;
 	probabilities.resize(radii.size(), std::vector<RealType>(radii.at(0).size()));
-	for (unsigned long int i = 0; i < 2 * L + 1; i++)
-	{ // i is the columns
-		for (unsigned long int j = 0; j < 2 * L + 1; j++)
-		{ // j is the row
+//	for (unsigned long int i = 0; i < 2 * L + 1; i++)
+//	{ // i is the columns
+//		for (unsigned long int j = 0; j < 2 * L + 1; j++)
+//		{ // j is the row
+    // shrink wrapping integrated prob
+	unsigned long int startIdx;
+	unsigned long int endIdx;
+	if (t < L){
+		startIdx = L - t - 1;
+		endIdx = L + t + 1;
+	}
+	else{
+		startIdx = 1;
+		endIdx = 2 * L;
+	}
 
+	for (unsigned long int i = startIdx; i < endIdx; i++)
+	{ // i is the columns
+		for (unsigned long int j = startIdx; j < endIdx; j++)
+            {
 			if (PDF.at(i).at(j) != 0)
 			{
 				int xval = i - L; 
@@ -163,16 +178,29 @@ void DiffusionND::saveOccupancy(std::string fileName){
 			myFile.write(reinterpret_cast<char*>(&PDF[i][j]), sizeof(RealType));
 		}
 	}
-	
 	myFile.close();
 }
 
 void DiffusionND::loadOccupancy(std::string fileName){
+    // Check whether file exists before we try to load it
 	std::ifstream file(fileName, std::ios::binary);
+	if (file.good()) {
+        std::cout << "File exists" << std::endl;
+    } else {
+        std::cout << "File doesn't exist" << std::endl;
+        throw std::runtime_error("File not found");
+    }
 	for (unsigned long int i = 0; i < 2*L+1; i++) {
         for (unsigned long int j = 0; j < 2*L+1; j++) {
             file.read(reinterpret_cast<char*>(&PDF[i][j]), sizeof(RealType));
         }
+    }
+    // Verify that goodbit is true
+    if (file.good()) {
+        std::cout << "File read correctly and goodbit is True" << std::endl;
+    } else {
+        std::cout << "Goodbit is FALSE" << std::endl;
+        throw std::runtime_error("File too short");
     }
 	file.close();
 }
